@@ -1,18 +1,32 @@
 name: RELEASE
 
-on: 
+on:
   release:
-    types: [created]
+    types:
+      - created
+      - edited
 
 jobs:
-  build:
+  prepare_version:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: nile
+        repository: m3ntorship/m3ntorship.com
+        ref: develop
+    - run: |
+        ls -al
+        echo ::set-env name=M3_VERSION::$(git rev-parse --short=4 HEAD)
+        echo $M3_VERSION is that
+  
+  deploy_dev:
+    needs: [prepare_version]
+    runs-on: ubuntu-latest
 
-    - name: Run a multi-line script
+    steps:
+    - name: Runs if it is prerelease
       run: |
+        echo $M3_VERSION
+        echo "${{toJson(github.event)}}"
         echo ${{github.event.release.tag_name}}
