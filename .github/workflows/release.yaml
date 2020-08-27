@@ -1,18 +1,45 @@
 name: RELEASE
 
-on: 
+on:
   release:
-    types: [created]
+    types:
+      - created
+      - edited
 
 jobs:
-  build:
+  
+  prepare:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
+      version: ${{ steps.prepare.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: m3ntorship/m3ntorship.com
+        ref: develop
+    - id: prepare
+      run: |
+        echo "::set-output name=sha::$(git rev-parse HEAD)"
+        echo "::set-output name=version::$(git rev-parse --short=4 HEAD)"
+  
+  build_frontend:
+    needs: [prepare]
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: nile
+        repository: m3ntorship/m3ntorship.com
+        ref: ${{needs.prepare.outputs.sha}}
 
-    - name: Run a multi-line script
+    - name: install dependencies
+      env:
+        M3NTORSHIP_APP_STRAPI_URL: http://localhost:1337
       run: |
-        echo ${{github.event.release.tag_name}}
+        yarn --cwd frontend 
+        yarn --cwd frontend build
+        docker build -t m3ntorshipci/m3ntorshipcom-frontend:0.6 -f Dockerfile.playground.frontend .
+        docker images
